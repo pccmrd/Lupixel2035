@@ -160,6 +160,35 @@ function generateMoon(body) {
   }
 
   buildMoonOutpost(body);
+
+  // Small, grounded settlements break up the bare cratered horizon: shielded
+  // habitat domes, a processing plant, and solar/communications hardware.
+  const sites = [
+    { x: cx - R * 0.48, kind: 'habitat' },
+    { x: cx + R * 0.42, kind: 'industry' },
+    { x: cx - R * 0.10, kind: 'habitat' }
+  ];
+  for (const site of sites) {
+    const dx = site.x - cx;
+    const surface = Math.floor(cy - Math.sqrt(Math.max(0, R * R - dx * dx)) * 0.91);
+    const base = surface - 1;
+    if (site.kind === 'habitat') {
+      const radius = Math.max(3, Math.round(R * 0.022));
+      for (let x = -radius; x <= radius; x++) {
+        const domeY = Math.round(Math.sqrt(Math.max(0, radius * radius - x * x)) * 0.72);
+        paintLine(body, site.x + x, base - domeY, site.x + x, base - domeY, MAT.GLASS);
+        if (Math.abs(x) === radius) paintLine(body, site.x + x, base - domeY, site.x + x, base, MAT.METAL);
+      }
+      paintLine(body, site.x - radius, base, site.x + radius, base, MAT.METAL, 2);
+      body.put(site.x, base - radius, MAT.LAMP);
+    } else {
+      paintRect(body, site.x - 11, base - 9, site.x + 11, base, MAT.METAL);
+      paintRect(body, site.x - 7, base - 7, site.x + 7, base - 3, MAT.SLAG);
+      paintRect(body, site.x - 4, base - 6, site.x + 4, base - 4, MAT.LAMP);
+      paintLine(body, site.x - 18, base - 2, site.x - 12, base - 2, MAT.GLASS, 2);
+      paintLine(body, site.x + 12, base - 2, site.x + 18, base - 2, MAT.GLASS, 2);
+    }
+  }
   anchorCore(body, Math.min(22, R * 0.16));
 }
 

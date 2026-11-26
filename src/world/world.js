@@ -117,7 +117,7 @@ export class World {
       if (body.generated) continue;
       const d = Math.hypot(ship.x - body.x, ship.y - body.y);
       const clearance = d - body.radius;
-      if (clearance < 620 && clearance < closestDistance) {
+      if (clearance < 5200 && clearance < closestDistance) {
         closest = body;
         closestDistance = clearance;
       }

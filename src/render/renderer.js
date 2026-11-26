@@ -154,7 +154,9 @@ export class Renderer {
   }
 
   addShake(amount) {
-    this.camera.shake = Math.min(14, this.camera.shake + amount);
+    // Keep impacts tactile without allowing repeated contact/damage events to
+    // turn into an apparently permanent camera vibration.
+    this.camera.shake = Math.min(4, this.camera.shake + Math.min(1.2, amount * 0.28));
   }
 
   screenToWorld(sx, sy) {
@@ -352,7 +354,7 @@ export class Renderer {
       ctx.translate(body.x, body.y);
       ctx.rotate(body.rotation);
       ctx.scale(body.cellScale, body.cellScale);
-      const surfaceNear = Math.hypot(body.x - this.camera.x, body.y - this.camera.y) < body.radius + 1800;
+      const surfaceNear = Math.hypot(body.x - this.camera.x, body.y - this.camera.y) < body.radius + 2800;
       if (body.generated && !body.surface && surfaceNear && Math.max(body.w, body.h) * this.camera.zoom > 3) body.prepareSurface();
       if (body.surface) body.flushSurface();
       if (body.surface && !body.surfaceDirty) {

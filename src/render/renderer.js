@@ -393,6 +393,7 @@ export class Renderer {
   drawAstronaut(ctx, game) {
     const eva = game.eva;
     if (!eva?.active) return;
+    const renderedEva = game.renderActor || eva;
     const zoom = this.camera.zoom;
     ctx.save();
     ctx.strokeStyle = 'rgba(140,234,255,0.38)';
@@ -403,8 +404,8 @@ export class Renderer {
     ctx.lineTo(eva.x, eva.y);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.translate(eva.x, eva.y);
-    ctx.rotate(eva.angle);
+    ctx.translate(renderedEva.x, renderedEva.y);
+    ctx.rotate(renderedEva.angle);
     if (eva.thrustLevel > 0.05) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -928,7 +929,8 @@ export class Renderer {
     game.particles.draw(ctx, this.camera.zoom);
     this.drawProjectiles(ctx, game.combat);
     this.drawEnemies(ctx, game.combat);
-    this.drawShip(ctx, game.ship, game.time, game.ship.rcsActive);
+    const renderedShip = game.eva?.active ? game.ship : (game.renderActor || game.ship);
+    this.drawShip(ctx, renderedShip, game.time, game.ship.rcsActive);
     this.drawAstronaut(ctx, game);
     ctx.restore();
 

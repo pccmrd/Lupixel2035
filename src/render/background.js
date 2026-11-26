@@ -108,13 +108,10 @@ export class Background {
 
   draw(ctx, camera, W, H, time, world) {
     ctx.imageSmoothingEnabled = false;
-    const px = wrap(-camera.x * 0.008, 0, W);
-    const py = wrap(-camera.y * 0.008, 0, H);
-    for (let oy = -1; oy <= 1; oy++) {
-      for (let ox = -1; ox <= 1; ox++) {
-        ctx.drawImage(this.canvas, Math.floor(px + ox * W), Math.floor(py + oy * H));
-      }
-    }
+    // This layer is a full-viewport nebula plate, not a tile: its gradients and
+    // clouds intentionally differ at the edges, so wrapping it created visible
+    // horizontal and vertical seams. Star layers below provide parallax motion.
+    ctx.drawImage(this.canvas, 0, 0, W, H);
 
     for (const star of this.stars) {
       const x = wrap(star.x - camera.x * star.parallax, 0, W) | 0;

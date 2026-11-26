@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OrbitalLayer, ORBITAL_CONTEXT } from '../src/world/orbital.js';
+import { LUNAR_LANES, OrbitalLayer, ORBITAL_CONTEXT } from '../src/world/orbital.js';
 
 test('orbital state is deterministic and preserves a hidden vertical component', () => {
   const first = new OrbitalLayer(0x2035);
@@ -35,9 +35,20 @@ test('haul population contains hundreds of bodies and exactly a five-percent cat
   assert.ok(configs.filter((body) => !body.catalogued).every((body) => body.name === 'UNSURVEYED MASS'));
   assert.ok(configs.some((body) => body.radius > 100));
   assert.ok(configs.every((body) => body.radius <= 120), 'minor bodies stay visibly smaller than Luna');
+  assert.ok(new Set(configs.map((body) => body.orbital.meanMotion)).size > 1,
+    'different lunar lanes have different Keplerian speeds');
+  const innerLane = configs.find((body) => body.orbital.lane === 0).orbital;
+  const outerLane = configs.find((body) => body.orbital.lane === LUNAR_LANES.count - 1).orbital;
+  assert.ok(innerLane.meanMotion > outerLane.meanMotion,
+    'inner lanes move faster than outer lanes');
+  assert.ok(configs.filter((body) => body.type === 'station')
+    .every((body) => LUNAR_LANES.stationLanes.includes(body.orbital.lane)),
+  'generated stations use protected orbital levels');
   assert.ok(configs.some((body) => body.type === 'comet'));
   assert.ok(configs.every((body) => Number.isFinite(body.x) && Number.isFinite(body.y)));
-  assert.ok(configs.every((body) => body.orbital.a >= 18000 && body.orbital.a <= 52000));
+  assert.ok(configs.every((body) => body.orbital.a >= LUNAR_LANES.minKm && body.orbital.a <= LUNAR_LANES.maxKm));
+  assert.ok(configs.every((body) => body.orbital.direction === 1 && body.orbital.e === 0));
+  assert.ok(configs.every((body) => Number.isInteger(body.orbital.lane)));
   assert.ok(configs.every((body) => body.orbital.a * (1 + body.orbital.e) < 60000),
     'haul bodies remain inside Luna’s Hill sphere');
 

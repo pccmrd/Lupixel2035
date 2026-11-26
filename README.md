@@ -86,7 +86,7 @@ Six bodies and three anomalies are generated deterministically:
 - **Cinder** — hot carbonaceous asteroid with molten pockets.
 - **Vesper Foundry** — industrial station containing flowing molten alloy.
 
-The renderer includes a procedural dithered nebula, parallax star layers, a distant sun glow, comet tails, emissive-cell bloom, landing lamps, gravity-field rings, map labels, velocity/gravity vectors, pixel ship and drone art, particles, laser beams and shockwaves. Camera zoom interpolates continuously from about `0.10×` system view to `3.2×` material-pixel view.
+The 294-body haul population is organized on ten circular prograde lunar lanes. Two dedicated levels are reserved for stations; other bodies are spaced into the widest open orbital phase gaps. Orbital speed follows Kepler's law, so inner lanes move faster than outer ones. The renderer includes a procedural dithered nebula, parallax star layers, a distant sun glow, comet tails, emissive-cell bloom, landing lamps, gravity-field rings, map labels, velocity/gravity vectors, pixel ship and drone art, particles, laser beams and shockwaves. Camera zoom interpolates continuously from about `0.10×` system view to `3.2×` material-pixel view.
 
 ## Gameplay systems
 

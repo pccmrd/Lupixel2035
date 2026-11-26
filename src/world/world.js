@@ -239,6 +239,9 @@ export class World {
     ax += sdx * sf;
     ay += sdy * sf;
 
+    const gravityScale = Number.isFinite(this.gravityScale) ? this.gravityScale : 1;
+    ax *= gravityScale;
+    ay *= gravityScale;
     const mag = Math.hypot(ax, ay);
     if (mag > 180) {
       const s = 180 / mag;

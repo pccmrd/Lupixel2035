@@ -188,6 +188,7 @@ export class Ship {
   update(dt, input, world) {
     this.prevX = this.x;
     this.prevY = this.y;
+    this.prevAngle = this.angle;
     if (this.landed && this.landedBody && this.gear && !this.requestingLaunch) {
       this.angle = wrap((this.landedBody.rotation || 0) + this.surfaceAnchor.angle, 0, TAU);
     }

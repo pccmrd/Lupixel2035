@@ -218,6 +218,7 @@ export class Astronaut {
     if (!this.active) return;
     this.prevX = this.x;
     this.prevY = this.y;
+    this.prevAngle = this.angle;
     this.scanCooldown = Math.max(0, this.scanCooldown - dt);
     this.scanPulse = Math.max(0, this.scanPulse - dt * 0.8);
     this.oxygen = Math.max(0, this.oxygen - dt);

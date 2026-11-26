@@ -1,4 +1,4 @@
-import { clamp, norm } from '../core/math.js';
+import { clamp, lerp, norm } from '../core/math.js';
 import { Input } from '../core/input.js';
 import { AudioEngine } from '../core/audio.js';
 import { World } from '../world/world.js';
@@ -493,7 +493,21 @@ export class Game {
 
     const cameraStart = performance.now();
     const cameraActor = this.eva.active ? this.eva : this.ship;
-    this.renderer.updateCamera(dt, cameraActor, this.input);
+    const alpha = clamp(this.accumulator / FIXED_DT, 0, 1);
+    const previousX = Number.isFinite(cameraActor.prevX) ? cameraActor.prevX : cameraActor.x;
+    const previousY = Number.isFinite(cameraActor.prevY) ? cameraActor.prevY : cameraActor.y;
+    let renderAngle = cameraActor.angle;
+    if (Number.isFinite(cameraActor.prevAngle) && Number.isFinite(cameraActor.angle)) {
+      const delta = ((cameraActor.angle - cameraActor.prevAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      renderAngle = cameraActor.prevAngle + delta * alpha;
+    }
+    this.renderActor = {
+      ...cameraActor,
+      x: lerp(previousX, cameraActor.x, alpha),
+      y: lerp(previousY, cameraActor.y, alpha),
+      angle: renderAngle
+    };
+    this.renderer.updateCamera(dt, this.renderActor, this.input);
     this.computeAim();
     const cameraUpdateMs = performance.now() - cameraStart;
 

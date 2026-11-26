@@ -111,7 +111,7 @@ agent.action('scan');
 agent.releaseControls();
 ```
 
-Telemetry includes ship/EVA state, velocity and resources, local gravity and nearest body, nearby-body positions and generation state, enemies/projectiles, mission progression, camera-to-ship error, and frame/simulation/render timings. A bounded 10 Hz history supports diagnosing jitter without screen capture. Controls include thrust, attitude, RCS, damping, boost, gear, scoop, tool-use and cannon; actions cover scan, mining, EVA, orbit assist, docking/trading, NPC management, story stage, and bounded simulation parameters. The API currently runs in-process; it is deliberately the game interface that a future MCP transport should call, rather than a parallel simulation or a separate source of truth.
+Telemetry includes ship/EVA state, velocity and resources, local gravity and nearest body, nearby-body positions and generation state, enemies/projectiles, mission progression, camera-to-ship error, and frame/simulation/render timings. A bounded frame-rate motion history (up to 600 samples) and `analyzeMotion()` help diagnose jitter without screen capture. Controls include thrust, attitude, RCS, damping, boost, gear, scoop, tool-use and cannon; actions cover scan, mining, EVA, orbit assist, docking/trading, NPC management, story stage, and bounded simulation parameters. The API currently runs in-process; it is deliberately the game interface that a future MCP transport should call, rather than a parallel simulation or a separate source of truth.
 
 ## Architecture
 

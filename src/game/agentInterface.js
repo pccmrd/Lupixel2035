@@ -14,7 +14,7 @@ export class AgentInterface {
     this.controls = new Set();
     this.history = [];
     this.lastSample = 0;
-    this.performance = { frameMs: 0, simulationMs: 0, physicsMs: 0, worldMs: 0, renderMs: 0, fixedSteps: 0, droppedTimeMs: 0 };
+    this.performance = { frameMs: 0, simulationMs: 0, physicsMs: 0, worldMs: 0, cameraUpdateMs: 0, renderMs: 0, fixedSteps: 0, droppedTimeMs: 0 };
     this.errors = [];
   }
 
@@ -189,8 +189,27 @@ export class AgentInterface {
     return telemetry;
   }
 
+  analyzeMotion(windowSize = 300) {
+    const samples = this.history.slice(-Math.max(2, Math.min(600, windowSize)));
+    if (samples.length < 3) return { sampleCount: samples.length, ready: false, message: 'Need at least three motion samples; allow telemetry to run for a few frames.' };
+    const sorted = (key) => samples.map((s) => s[key]).sort((a, b) => a - b);
+    const percentile = (values, p) => values[Math.min(values.length - 1, Math.floor((values.length - 1) * p))];
+    const frameTimes = sorted('frameMs');
+    const cameraResidual = samples.slice(1).map((s, i) => Math.hypot(s.cameraDelta[0] - s.shipDelta[0], s.cameraDelta[1] - s.shipDelta[1]));
+    const shakePeak = Math.max(...samples.map((s) => s.shake));
+    const dropped = samples.filter((s) => s.droppedTimeMs > 0).length;
+    return {
+      ready: true, sampleCount: samples.length,
+      frameMs: { median: percentile(frameTimes, 0.5), p95: percentile(frameTimes, 0.95), p99: percentile(frameTimes, 0.99), max: frameTimes.at(-1) },
+      cameraRelativeMotion: { medianPerFrame: cameraResidual.sort((a, b) => a - b)[Math.floor(cameraResidual.length / 2)] || 0, maxPerFrame: Math.max(...cameraResidual) },
+      shakePeak, droppedSimulationFrames: dropped,
+      likelyIssue: shakePeak > 0.15 ? 'camera-shake feedback is active' : dropped > 0 || percentile(frameTimes, 0.95) > 40 ? 'frame/simulation stalls are present' : 'no sustained shake or major frame stalls in the sampled interval; inspect ship/camera relative motion series',
+      samples
+    };
+  }
+
   sampleFrame(frameMs) {
-    if (now() - this.lastSample < 100) return;
+    if (now() - this.lastSample < 16) return;
     this.lastSample = now();
     const ship = this.game.ship;
     const camera = this.game.renderer.camera;
@@ -201,7 +220,7 @@ export class AgentInterface {
       shipDelta: previous ? [ship.x - previous.ship[0], ship.y - previous.ship[1]] : [0, 0],
       camera: [camera.x, camera.y],
       cameraDelta: previous ? [camera.x - previous.camera[0], camera.y - previous.camera[1]] : [0, 0],
-      cameraError: [camera.x - ship.x, camera.y - ship.y], zoom: camera.zoom, shake: camera.shake
+      cameraError: [camera.x - ship.x, camera.y - ship.y], zoom: camera.zoom, shake: camera.shake, droppedTimeMs: this.performance.droppedTimeMs
     };
     this.history.push(sample);
     if (this.history.length > 600) this.history.shift();

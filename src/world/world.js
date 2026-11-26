@@ -7,36 +7,36 @@ import { OrbitalLayer, ORBITAL_CONTEXT } from './orbital.js';
 const BODY_CONFIGS = [
   {
     id: 'selene', name: 'LUNA', type: 'moon', x: 0, y: 0,
-    w: 840, h: 840, radius: 380, g0: 60, seed: 0x5e1e, glow: '#9bd8ff',
+    w: 840, h: 840, radius: 3800, cellScale: 10, g0: 600, seed: 0x5e1e, glow: '#9bd8ff',
     market: true, structural: true, hue: 0.57,
     description: 'Airless regolith, lava tubes, ice shadow traps and a surface exchange.'
   },
   {
-    id: 'kestrel', name: 'KESTREL SHARD', type: 'asteroid', x: -2382.870956601819, y: 0, orbitLane: 0,
+    id: 'kestrel', name: 'KESTREL SHARD', type: 'asteroid', x: -23828.70956601819, y: 0, orbitLane: 0,
     w: 260, h: 260, radius: 120, g0: 4, seed: 0x8a57, glow: '#ffb36b',
     structural: true, hue: 0.08,
     description: 'A fractured ore body with a crystalline geode and low gravity caves.'
   },
   {
-    id: 'vela', name: 'VELA', type: 'comet', x: 0, y: -4500.978473581214, orbitLane: 4,
+    id: 'vela', name: 'VELA', type: 'comet', x: 0, y: -45009.78473581214, orbitLane: 4,
     w: 240, h: 240, radius: 110, g0: 1.7, seed: 0x7e1a, glow: '#8beaff',
     structural: true, hue: 0.52,
     description: 'Volatile ice, cryo vaults and an active sunward jet.'
   },
   {
-    id: 'halcyon', name: 'HALCYON RING', type: 'station', x: 3441.924715091516, y: 0, orbitLane: 2,
+    id: 'halcyon', name: 'HALCYON RING', type: 'station', x: 34419.24715091516, y: 0, orbitLane: 2,
     w: 300, h: 300, radius: 120, g0: 2.5, seed: 0x1ac0, glow: '#8ef7ff',
     market: true, structural: false, variant: 'ring', hue: 0.5,
     description: 'A destructible trading ring with electromagnetic material rails.'
   },
   {
-    id: 'cinder', name: 'CINDER', type: 'cinder', x: 7148.612869805456, y: 0, orbitLane: 9,
+    id: 'cinder', name: 'CINDER', type: 'cinder', x: 71486.12869805456, y: 0, orbitLane: 9,
     w: 250, h: 250, radius: 115, g0: 4, seed: 0xc1de, glow: '#ff8055',
     structural: true, hue: 0.03,
     description: 'A hot carbonaceous asteroid with molten pockets and dense ores.'
   },
   {
-    id: 'vesper', name: 'VESPER FOUNDRY', type: 'station', x: -6089.55911131576, y: 0, orbitLane: 7,
+    id: 'vesper', name: 'VESPER FOUNDRY', type: 'station', x: -60895.5911131576, y: 0, orbitLane: 7,
     w: 300, h: 300, radius: 115, g0: 2.2, seed: 0xfe5a, glow: '#ffb86b',
     market: true, structural: false, variant: 'foundry', hue: 0.1,
     description: 'An automated foundry that still contains flowing molten alloy.'
@@ -49,9 +49,9 @@ export class World {
     this.rng = new Rng(seed);
     this.time = 0;
     this.events = [];
-    this.star = { x: -6500, y: -4300, name: 'SOL', color: '#ffd38a' };
+    this.star = { x: -65000, y: -43000, name: 'SOL', color: '#ffd38a' };
     this.sunDirection = norm(-this.star.x, -this.star.y, 0.8, 0.6);
-    this.bounds = { minX: -7600, maxX: 7600, minY: -7600, maxY: 7600 };
+    this.bounds = { minX: -80000, maxX: 80000, minY: -80000, maxY: 80000 };
     this.tailAccumulator = 0;
     this.orbital = new OrbitalLayer(seed);
     this.bodies = BODY_CONFIGS.map((config) => {
@@ -88,6 +88,10 @@ export class World {
       { id: 'derelict', name: 'DERELICT POD', x: -1190, y: -850, found: false, reward: 220, loot: { commodity: 'alloy', units: 5 } },
       { id: 'cryo', name: 'CRYO VAULT', x: 1160, y: -510, found: false, reward: 500, loot: { commodity: 'volatiles', units: 8 } }
     ];
+    for (const anomaly of this.anomalies) {
+      anomaly.orbital = this.orbital.createLaneElements(this.orbital.laneForType('anomaly'));
+      this.orbital.register(anomaly, { orbital: anomaly.orbital });
+    }
   }
 
   pushEvent(event) {
@@ -196,6 +200,7 @@ export class World {
   advance(dt) {
     this.time += dt;
     this.orbital.update(dt, this.bodies.filter((body) => body.type !== 'moon'));
+    for (const anomaly of this.anomalies) this.orbital.sync(anomaly);
     for (const hauler of this.haulers) {
       hauler.state = this.orbital.sample(hauler.orbital, this.time);
       if (this.time >= hauler.nextArrival) this.releaseDelivery(hauler);
@@ -277,18 +282,19 @@ export class World {
     for (const body of this.bodies) {
       if (!body.generated) continue;
       const centerDist = Math.hypot(body.x - x, body.y - y);
-      const bound = Math.hypot(body.w, body.h) / 2;
+      const bound = Math.hypot(body.w, body.h) * body.cellScale / 2;
       if (centerDist > maxDist + bound) continue;
       const start = body.worldToLocal(x, y);
       const localDirX = dirX * body.cos + dirY * body.sin;
       const localDirY = -dirX * body.sin + dirY * body.cos;
-      const hit = body.raycastLocal(start.x, start.y, localDirX, localDirY, maxDist, true);
-      if (!hit || (best && hit.t >= best.distance)) continue;
+      const hit = body.raycastLocal(start.x, start.y, localDirX, localDirY, maxDist / body.cellScale, true);
+      const hitDistance = hit ? hit.t * body.cellScale : Infinity;
+      if (!hit || (best && hitDistance >= best.distance)) continue;
       const point = body.localToWorld(hit.localX, hit.localY);
       best = {
         body,
         i: hit.i,
-        distance: hit.t,
+        distance: hitDistance,
         x: point.x,
         y: point.y,
         localX: hit.localX,
@@ -303,13 +309,13 @@ export class World {
 
   grindHit(hit, radius = 2.2, power = 18) {
     if (!hit) return 0;
-    hit.body.grindArea(hit.localX, hit.localY, radius, power);
+    hit.body.grindArea(hit.localX, hit.localY, radius / hit.body.cellScale, power);
     return 1;
   }
 
   heatHit(hit, radius = 2.6, heat = 28, damage = 5) {
     if (!hit) return 0;
-    hit.body.applyHeatArea(hit.localX, hit.localY, radius, heat, damage, 'laser');
+    hit.body.applyHeatArea(hit.localX, hit.localY, radius / hit.body.cellScale, heat, damage, 'laser');
     return 1;
   }
 
@@ -318,8 +324,9 @@ export class World {
     for (const body of this.bodies) {
       if (!body.generated) continue;
       const p = body.worldToLocal(wx, wy);
-      if (p.x < -radius || p.y < -radius || p.x > body.w + radius || p.y > body.h + radius) continue;
-      body.explode(p.x, p.y, radius, power);
+      const localRadius = radius / body.cellScale;
+      if (p.x < -localRadius || p.y < -localRadius || p.x > body.w + localRadius || p.y > body.h + localRadius) continue;
+      body.explode(p.x, p.y, localRadius, power);
       touched++;
     }
     this.pushEvent({ type: 'shockwave', x: wx, y: wy, radius, power });
@@ -332,7 +339,8 @@ export class World {
     for (const body of this.bodies) {
       if (!body.generated) continue;
       const p = body.worldToLocal(ship.x, ship.y);
-      if (p.x < -12 || p.y < -12 || p.x > body.w + 12 || p.y > body.h + 12) continue;
+      const reach = 12 / body.cellScale;
+      if (p.x < -reach || p.y < -reach || p.x > body.w + reach || p.y > body.h + reach) continue;
       total += body.collectLocal(p.x, p.y, (i, material) => {
         const ok = ship.addMaterial(material);
         if (ok && i >= 0 && this.rng.chance(0.16)) {
@@ -341,7 +349,7 @@ export class World {
           this.pushEvent({ type: 'collect', x: point.x, y: point.y, commodity: cargo?.commodity || 'ore' });
         }
         return ok;
-      });
+      }, 10 / body.cellScale);
     }
     return total;
   }
@@ -416,7 +424,7 @@ export class World {
         far: !near,
         shipLocal,
         scoop: near && ship.scoop && ship.energy > 1,
-        scoopRange: 62 + (ship.scoopRangeBonus || 0),
+        scoopRange: (62 + (ship.scoopRangeBonus || 0)) / body.cellScale,
         collect: (i, material) => {
           const ok = ship.addMaterial(material);
           if (ok && i >= 0 && this.rng.chance(0.10)) {

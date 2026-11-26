@@ -180,6 +180,8 @@ export class PixelBody {
     this.w = config.w;
     this.h = config.h;
     this.radius = config.radius;
+    this.cellScale = config.cellScale || 1;
+    this.gridRadius = this.radius / this.cellScale;
     this.g0 = config.g0 || 8;
     this.mu = this.g0 * this.radius * this.radius * 1.08;
     this.seed = config.seed >>> 0;
@@ -328,15 +330,15 @@ export class PixelBody {
   worldToLocal(wx, wy) {
     const dx = wx - this.x;
     const dy = wy - this.y;
-    const lx = dx * this.cos + dy * this.sin;
-    const ly = -dx * this.sin + dy * this.cos;
+    const lx = (dx * this.cos + dy * this.sin) / this.cellScale;
+    const ly = (-dx * this.sin + dy * this.cos) / this.cellScale;
     return { x: lx + this.w / 2, y: ly + this.h / 2 };
   }
 
   localToWorld(lx, ly) {
     const dx = lx - this.w / 2;
     const dy = ly - this.h / 2;
-    const r = rotate(dx, dy, this.cos, this.sin);
+    const r = rotate(dx * this.cellScale, dy * this.cellScale, this.cos, this.sin);
     return { x: this.x + r.x, y: this.y + r.y };
   }
 
@@ -1065,8 +1067,7 @@ export class PixelBody {
     return norm(r.x, r.y, 0, -1);
   }
 
-  collectLocal(cx, cy, callback) {
-    const radius = 10;
+  collectLocal(cx, cy, callback, radius = 10) {
     const r = Math.ceil(radius);
     let collected = 0;
     for (let y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++) {

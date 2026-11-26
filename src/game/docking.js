@@ -72,8 +72,8 @@ export class DockingController {
         x: body.dock.x,
         y: body.dock.y,
         angle: body.dock.angle || 0,
-        width: body.dock.width,
-        height: body.dock.height,
+        width: body.dock.width * (body.cellScale || 1),
+        height: body.dock.height * (body.cellScale || 1),
         captureRadius: body.dock.captureRadius || Math.max(22, body.dock.width * 0.3)
       });
     }

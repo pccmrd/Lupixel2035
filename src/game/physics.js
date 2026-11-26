@@ -178,7 +178,12 @@ export function resolveTerrainCollision(ship, world) {
     ship.hull = clamp(ship.hull - damage, 0, 100);
     ship.heat = Math.min(100, ship.heat + damage * 0.22);
     const local = impactLocal;
-    contactBody.grindArea(local.x, local.y, 5 + impactSpeed * 0.045, impactSpeed * 2.4);
+    contactBody.grindArea(
+      local.x,
+      local.y,
+      (5 + impactSpeed * 0.045) / contactBody.cellScale,
+      impactSpeed * 2.4
+    );
     world.pushEvent({
       type: 'impact', x: contactX, y: contactY,
       normalX: n.x, normalY: n.y,

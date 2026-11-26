@@ -3,14 +3,14 @@ import { cargoForMaterial } from '../world/materials.js';
 import { holdSurface, releaseSurface, resolveTerrainCollision } from './physics.js';
 import { SHIP_SCALE, attachShip } from './shipConfig.js';
 
-export const SHIP_FUEL_FLOW = 60;
+export const SHIP_FUEL_FLOW = 8;
 
 export class Ship {
   constructor(world) {
     this.world = world;
     this.name = 'PEREGRINE';
     this.x = 0;
-    this.y = -640;
+    this.y = -4500;
     this.prevX = this.x;
     this.prevY = this.y;
     const moon = world.bodyById?.get('selene');

@@ -6,14 +6,15 @@ export const ORBITAL_CONTEXT = Object.freeze({
   earthMoonDistanceKm: 384400,
   moonRadiusKm: 1737.4,
   moonMu: 4902.800066,
+  lunarHillRadiusKm: 600000,
   worldUnitsPerKm: 230 / 1737.4,
   // Scales real lunar Kepler motion into game time and the gravity model's units.
-  timeScale: 908
+  timeScale: 28682
 });
 
 export const LUNAR_LANES = Object.freeze({
-  minKm: 18000,
-  maxKm: 54000,
+  minKm: 180000,
+  maxKm: 540000,
   count: 10,
   stationLanes: Object.freeze([2, 7])
 });

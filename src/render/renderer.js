@@ -1,6 +1,6 @@
 import { TAU, clamp, formatDistance, lerp, norm } from '../core/math.js';
 import { MAT, info } from '../world/materials.js';
-import { GEAR_POINTS, HULL_POINTS, SHIP_SCALE } from '../game/shipConfig.js';
+import { GEAR_POINTS, SHIP_SCALE } from '../game/shipConfig.js';
 import { Background } from './background.js';
 
 function hexToRgba(hex, alpha) {
@@ -20,18 +20,6 @@ function createShipSprite() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
   ctx.translate(36, 18);
-
-  // A restrained graphite hull keeps the silhouette integrated with the scene;
-  // avoid the near-black/navy outer plate that reads as a cutout at game scale.
-  ctx.beginPath();
-  ctx.moveTo(HULL_POINTS[0][0], HULL_POINTS[0][1]);
-  for (let i = 1; i < HULL_POINTS.length; i++) ctx.lineTo(HULL_POINTS[i][0], HULL_POINTS[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = '#263542';
-  ctx.fill();
-  ctx.strokeStyle = '#8295a2';
-  ctx.lineWidth = 1;
-  ctx.stroke();
 
   ctx.fillStyle = '#405a73';
   ctx.beginPath();

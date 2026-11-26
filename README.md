@@ -16,7 +16,7 @@ Open `http://localhost:5173`. The included static server binds `0.0.0.0`, so it 
 npm test
 ```
 
-Runs headless tests for material rules, radial pixel gravity, phase changes, procedural generation, Newtonian flight, docking, raycasts and explosions.
+Runs headless tests for material rules, radial pixel gravity, phase changes, procedural generation, Newtonian flight, docking, raycasts, explosions and the in-game agent API.
 
 ## Flight and controls
 
@@ -96,6 +96,22 @@ The 294-body haul population is organized on ten circular prograde lunar lanes. 
 - **Trading** at lit docks: sell commodities, refuel, repair, expand cargo capacity and upgrade the magnetic amplifier.
 - **Exploration** with survey discovery, anomalies, a system map and mission objectives.
 - **Audio** synthesized with Web Audio; no audio files.
+
+## Agent telemetry and control API
+
+The running game exposes a structured, screenshot-free API at `window.game.agent` in the browser console. It is instantiated by the game itself and reads/writes the same live simulation objects as player input. The contract is versioned (`lupixel.agent.*.v1`) and capabilities are discoverable:
+
+```js
+const agent = window.game.agent;
+agent.capabilities();
+agent.snapshot({ range: 5000, history: 30 });
+agent.setControls({ thrust: true, rotateLeft: true });
+agent.setAim(worldX, worldY);
+agent.action('scan');
+agent.releaseControls();
+```
+
+Telemetry includes ship/EVA state, velocity and resources, local gravity and nearest body, nearby-body positions and generation state, enemies/projectiles, mission progression, camera-to-ship error, and frame/simulation/render timings. A bounded 10 Hz history supports diagnosing jitter without screen capture. Controls include thrust, attitude, RCS, damping, boost, gear, scoop, tool-use and cannon; actions cover scan, mining, EVA, orbit assist, docking/trading, NPC management, story stage, and bounded simulation parameters. The API currently runs in-process; it is deliberately the game interface that a future MCP transport should call, rather than a parallel simulation or a separate source of truth.
 
 ## Architecture
 

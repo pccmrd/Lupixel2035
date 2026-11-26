@@ -11,6 +11,7 @@ import { ParticleSystem } from './particles.js';
 import { TradeSystem } from './trade.js';
 import { UI } from '../ui/hud.js';
 import { Renderer } from '../render/renderer.js';
+import { AgentInterface } from './agentInterface.js';
 
 const FIXED_DT = 1 / 60;
 const PASSIVE_INPUT = Object.freeze({ isDown: () => false, anyDown: () => false });
@@ -95,6 +96,7 @@ export class Game {
     this.ui.log('2035 LUNAR HAUL CORRIDOR · 294 RELOCATED BODIES', '');
     this.ui.log('LUNA WELL: EVEN FULL TANKS LACK THE DELTA-V FOR SAFE CAPTURE', 'warn');
     this.ui.log('W/S THRUST · A/D TORQUE · Q/E RCS · O ORBIT ASSIST · G EVA · H FOR REFERENCE', '');
+    this.agent = new AgentInterface(this);
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
   }
@@ -425,6 +427,7 @@ export class Game {
   }
 
   fixedUpdate(dt) {
+    let phaseStart = performance.now();
     this.time += dt;
     this.energyWarnCooldown = Math.max(0, this.energyWarnCooldown - dt);
     this.collectSoundCooldown = Math.max(0, this.collectSoundCooldown - dt);
@@ -432,13 +435,18 @@ export class Game {
     this.respawnCooldown = Math.max(0, this.respawnCooldown - dt);
 
     this.world.advance(dt);
+    this.agentFrameWorldMs += performance.now() - phaseStart;
+    phaseStart = performance.now();
     if (!this.eva.active) this.orbit.update(dt, this.input);
     this.ship.update(dt, this.eva.active ? PASSIVE_INPUT : this.input, this.world);
     this.ship.docked = this.docking.update(dt);
+    this.agentFramePhysicsMs += performance.now() - phaseStart;
+    phaseStart = performance.now();
     if (this.docking.engaged && this.ship.requestingLaunch) this.docking.release();
     this.updateTools(dt, this.aimDir);
     this.combat.update(dt);
     this.world.update(dt, this.ship, { orbitalAdvanced: true });
+    this.agentFrameWorldMs += performance.now() - phaseStart;
     if (this.eva.active) this.eva.update(dt, this.input);
     this.particles.update(dt, this.world, this.ship);
     this.ship.docked = this.docking.dock;
@@ -450,6 +458,7 @@ export class Game {
   }
 
   loop(now) {
+    const frameStart = performance.now();
     const dt = clamp((now - this.lastTime) / 1000, 0, 0.05);
     this.lastTime = now;
 
@@ -458,15 +467,24 @@ export class Game {
     this.renderer.updateCamera(dt, cameraActor, this.input);
     this.computeAim();
 
+    const simulationStart = performance.now();
+    this.agentFramePhysicsMs = 0;
+    this.agentFrameWorldMs = 0;
+    let frameSteps = 0;
+    let droppedTimeMs = 0;
     if (!this.paused) {
-      this.accumulator += dt;
+      this.accumulator += dt * (this.agentTimeScale ?? 1);
       let steps = 0;
       while (this.accumulator >= FIXED_DT && steps < 4) {
         this.fixedUpdate(FIXED_DT);
         this.accumulator -= FIXED_DT;
         steps++;
       }
-      if (steps === 4) this.accumulator = 0;
+      frameSteps = steps;
+      if (steps === 4) {
+        droppedTimeMs = this.accumulator * 1000;
+        this.accumulator = 0;
+      }
     } else {
       this.beam.active = false;
       this.laserActive = false;
@@ -477,7 +495,12 @@ export class Game {
     this.audio.setThrust(this.paused ? 0 : (this.eva.active ? this.eva.thrustLevel : this.ship.thrustLevel), this.eva.active ? false : this.ship.boosting);
     this.audio.setLaser(this.paused ? false : this.laserActive);
     this.ui.render(dt, this);
+    const renderStart = performance.now();
     this.renderer.render(this);
+    const renderMs = performance.now() - renderStart;
+    const frameMs = performance.now() - frameStart;
+    this.agent.recordTimings({ frameMs, simulationMs: renderStart - simulationStart, physicsMs: this.agentFramePhysicsMs, worldMs: this.agentFrameWorldMs, renderMs, fixedSteps: frameSteps, droppedTimeMs });
+    this.agent.sampleFrame(frameMs);
     this.input.endFrame();
     requestAnimationFrame(this.loop);
   }

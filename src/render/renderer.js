@@ -21,12 +21,17 @@ function createShipSprite() {
   ctx.save();
   ctx.translate(36, 18);
 
-  ctx.fillStyle = '#09111f';
+  // A restrained graphite hull keeps the silhouette integrated with the scene;
+  // avoid the near-black/navy outer plate that reads as a cutout at game scale.
   ctx.beginPath();
   ctx.moveTo(HULL_POINTS[0][0], HULL_POINTS[0][1]);
   for (let i = 1; i < HULL_POINTS.length; i++) ctx.lineTo(HULL_POINTS[i][0], HULL_POINTS[i][1]);
   ctx.closePath();
+  ctx.fillStyle = '#263542';
   ctx.fill();
+  ctx.strokeStyle = '#8295a2';
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
   ctx.fillStyle = '#405a73';
   ctx.beginPath();

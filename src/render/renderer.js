@@ -230,7 +230,7 @@ export class Renderer {
   bodyVisible(body, margin = 1.4) {
     const halfW = this.canvas.width / (2 * this.camera.zoom);
     const halfH = this.canvas.height / (2 * this.camera.zoom);
-    const r = Math.hypot(body.w, body.h) / 2 * margin;
+      const r = Math.hypot(body.w, body.h) * body.cellScale / 2 * margin;
     return body.x + r > this.camera.x - halfW && body.x - r < this.camera.x + halfW
       && body.y + r > this.camera.y - halfH && body.y - r < this.camera.y + halfH;
   }
@@ -351,6 +351,7 @@ export class Renderer {
       ctx.save();
       ctx.translate(body.x, body.y);
       ctx.rotate(body.rotation);
+      ctx.scale(body.cellScale, body.cellScale);
       const surfaceNear = Math.hypot(body.x - this.camera.x, body.y - this.camera.y) < body.radius + 1800;
       if (body.generated && !body.surface && surfaceNear && Math.max(body.w, body.h) * this.camera.zoom > 3) body.prepareSurface();
       if (body.surface) body.flushSurface();
@@ -500,6 +501,7 @@ export class Renderer {
         ctx.save();
         ctx.translate(body.x, body.y);
         ctx.rotate(body.rotation);
+        ctx.scale(body.cellScale, body.cellScale);
         ctx.translate(-body.w / 2, -body.h / 2);
         const d = body.dock;
         ctx.globalAlpha = 0.45 + Math.sin(time * 2) * 0.12;

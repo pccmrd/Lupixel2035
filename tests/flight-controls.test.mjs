@@ -164,6 +164,8 @@ test('generated pads place the enlarged landing feet on their surface', () => {
   const ship = new Ship(world);
   attachShip(ship, body, slot.x, slot.y, 0, world);
   assert.equal(body.worldToLocal(ship.x, ship.y).y, slot.y);
-  assert.ok(slot.y + SHIP_SCALE.gearHeight <= body.h);
-  assert.ok(world.sampleMaterial(ship.x, ship.y + SHIP_SCALE.gearHeight + 1));
+  const gearHeightCells = SHIP_SCALE.gearHeight / body.cellScale;
+  assert.ok(slot.y + gearHeightCells <= body.h);
+  const padPoint = body.localToWorld(slot.x, slot.y + gearHeightCells);
+  assert.ok(world.sampleMaterial(padPoint.x, padPoint.y));
 });

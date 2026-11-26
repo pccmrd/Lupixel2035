@@ -38,20 +38,27 @@ export class CombatSystem {
       y += Math.sin(a) * 40;
     }
     const style = ENEMY_STYLES[rank] || ENEMY_STYLES.scout;
+    const patrolRate = this.rng.range(0.16, 0.26);
     this.enemies.push({
       id: this.idCounter++,
       rank,
       x, y,
-      vx: -Math.sin(a) * 18,
-      vy: Math.cos(a) * 18,
-      angle: a + Math.PI,
+      vx: (body.vx || 0) - Math.sin(a) * patrolRate * distance,
+      vy: (body.vy || 0) + Math.cos(a) * patrolRate * distance,
+      angle: a + Math.PI / 2,
+      patrolAngle: a,
+      patrolRadius: distance,
+      patrolRate,
+      alerted: false,
+      alertRange: 1150,
+      leashRange: 1450,
       hp: style.hp,
       maxHp: style.hp,
       radius: style.radius,
       cooldown: this.rng.range(0.5, 1.7),
       flash: 0,
       dead: false,
-      orbitSign: this.rng.chance(0.5) ? 1 : -1,
+      orbitSign: 1,
       homeId: bodyId,
       color: style.color,
       style
@@ -60,14 +67,16 @@ export class CombatSystem {
 
   spawnWave() {
     if (this.enemies.length >= 4) return;
-    const choices = this.world.bodies.filter((b) => Math.hypot(b.x - this.ship.x, b.y - this.ship.y) > 420);
-    const body = choices.length ? this.rng.pick(choices) : this.rng.pick(this.world.bodies);
+    const choices = this.world.bodies.filter((body) => (
+      ['asteroid', 'cinder', 'comet'].includes(body.type)
+      && Math.hypot(body.x - this.ship.x, body.y - this.ship.y) > 1600
+    ));
+    if (!choices.length) return;
+    const body = this.rng.pick(choices);
     const count = this.rng.int(1, 2);
     for (let k = 0; k < count; k++) {
       this.spawnEnemyAt(body.id, this.rng.chance(0.32) ? 'lancer' : 'scout', this.rng.range(0, TAU));
     }
-    this.ship.notify('UNIDENTIFIED HOSTILE TRANSPONDERS', 'warn', { type: 'wave' });
-    this.world.pushEvent({ type: 'alarm', x: this.ship.x, y: this.ship.y });
   }
 
   lineOfSight(x, y, dirX, dirY, maxDist) {
@@ -179,7 +188,30 @@ export class CombatSystem {
       const dy = ship.y - enemy.y;
       const d = Math.max(1, Math.hypot(dx, dy));
       const toShip = norm(dx, dy, 1, 0);
-      const tangent = { x: -toShip.y * enemy.orbitSign, y: toShip.x * enemy.orbitSign };
+      const home = this.world.bodyById.get(enemy.homeId);
+      const shipToHome = home ? Math.hypot(ship.x - home.x, ship.y - home.y) : Infinity;
+      if (!enemy.alerted && home && shipToHome < home.radius + enemy.alertRange && d < enemy.alertRange) {
+        enemy.alerted = true;
+        ship.notify(`HOSTILE CONTACT · ${enemy.homeId.toUpperCase()} PATROL`, 'warn', { type: 'wave' });
+        this.world.pushEvent({ type: 'alarm', x: enemy.x, y: enemy.y });
+      } else if (enemy.alerted && (shipToHome > home.radius + enemy.leashRange || d > enemy.leashRange)) {
+        enemy.alerted = false;
+      }
+
+      if (!enemy.alerted) {
+        if (!home) continue;
+        enemy.patrolAngle += enemy.patrolRate * dt;
+        const px = Math.cos(enemy.patrolAngle);
+        const py = Math.sin(enemy.patrolAngle);
+        enemy.x = home.x + px * enemy.patrolRadius;
+        enemy.y = home.y + py * enemy.patrolRadius;
+        enemy.vx = (home.vx || 0) - py * enemy.patrolRate * enemy.patrolRadius;
+        enemy.vy = (home.vy || 0) + px * enemy.patrolRate * enemy.patrolRadius;
+        enemy.angle = enemy.patrolAngle + Math.PI / 2;
+        continue;
+      }
+
+      const tangent = { x: -toShip.y, y: toShip.x };
       let ax = tangent.x * enemy.style.speed * 0.35;
       let ay = tangent.y * enemy.style.speed * 0.35;
       if (d > 340) {

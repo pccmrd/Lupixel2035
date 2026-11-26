@@ -49,7 +49,7 @@ test('haul population contains hundreds of bodies and exactly a five-percent cat
   assert.ok(configs.every((body) => body.orbital.a >= LUNAR_LANES.minKm && body.orbital.a <= LUNAR_LANES.maxKm));
   assert.ok(configs.every((body) => body.orbital.direction === 1 && body.orbital.e === 0));
   assert.ok(configs.every((body) => Number.isInteger(body.orbital.lane)));
-  assert.ok(configs.every((body) => body.orbital.a * (1 + body.orbital.e) < 60000),
+  assert.ok(configs.every((body) => body.orbital.a * (1 + body.orbital.e) < ORBITAL_CONTEXT.lunarHillRadiusKm),
     'haul bodies remain inside Luna’s Hill sphere');
 
   const radii = configs.map((body) => Math.hypot(body.x, body.y));

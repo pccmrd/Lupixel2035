@@ -52,8 +52,9 @@ export function attachShip(ship, body, localX, localY, angle, world) {
 }
 
 export function surfaceVelocity(body, localX, localY) {
-  const dx = localX - body.w / 2;
-  const dy = localY - body.h / 2;
+  const scale = body.cellScale || 1;
+  const dx = (localX - body.w / 2) * scale;
+  const dy = (localY - body.h / 2) * scale;
   const omega = body.omega || 0;
   return {
     x: (body.vx || 0) - dy * omega,

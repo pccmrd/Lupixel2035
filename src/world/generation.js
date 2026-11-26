@@ -46,10 +46,21 @@ function anchorCore(body, radius) {
 function buildMoonOutpost(body) {
   const cx = body.w / 2;
   const cy = body.h / 2;
-  const dockY = Math.round(cy - body.radius - 5);
+  const scale = body.cellScale;
+  const gearHeight = SHIP_SCALE.gearHeight / scale;
+  let surfaceY = Math.floor(cy - body.gridRadius * 0.9);
+  for (let y = 0; y < cy; y++) {
+    if (isSolid(body.cellAt(cx | 0, y))) {
+      surfaceY = y;
+      break;
+    }
+  }
+  const dockY = Math.max(2, surfaceY - 1);
+  const halfPad = Math.max(5, Math.round(46 / scale));
+  const padThickness = Math.max(1, Math.round(6 / scale));
 
-  paintRect(body, cx - 46, dockY, cx + 46, dockY + 5, MAT.METAL);
-  paintRect(body, cx - 42, dockY + 1, cx + 42, dockY + 3, MAT.SLAG);
+  paintRect(body, cx - halfPad, dockY, cx + halfPad, dockY + padThickness, MAT.METAL);
+  paintRect(body, cx - halfPad + 1, dockY + 1, cx + halfPad - 1, dockY + Math.max(1, padThickness - 2), MAT.SLAG);
   for (let x = cx - 40; x <= cx + 40; x += 10) body.put(x, dockY - 1, MAT.LAMP);
 
   // A compact exchange tower is offset from the clear landing lane.
@@ -72,7 +83,13 @@ function buildMoonOutpost(body) {
     if (i >= 0) body.anchors.push(i);
   }
 
-  body.dock = { x: cx, y: dockY - SHIP_SCALE.gearHeight, width: 76, height: 16, captureRadius: 24 };
+  body.dock = {
+    x: cx,
+    y: dockY - gearHeight,
+    width: halfPad * 2,
+    height: padThickness,
+    captureRadius: 24
+  };
 }
 
 function generateMoon(body) {
@@ -85,7 +102,7 @@ function generateMoon(body) {
   }));
   const cx = body.w / 2;
   const cy = body.h / 2;
-  const R = body.radius;
+  const R = body.gridRadius;
 
   const edgeAt = (angle) => clamp(
     0.93 + (angularNoise(angle, body.seed + 11, 2.1, 3) - 0.5) * 0.13
@@ -386,7 +403,7 @@ function populateSites(body) {
     for (let x = 22; x < body.w - 22; x += 10) {
       if (body.cellAt(x, y) !== MAT.VACUUM) continue;
       const d = Math.hypot(x - body.w / 2, y - body.h / 2);
-      if (d > body.radius * 0.8 || d < 24) continue;
+      if (d > body.gridRadius * 0.8 || d < 24) continue;
       let walls = 0;
       for (let oy = -2; oy <= 2; oy++) {
         for (let ox = -2; ox <= 2; ox++) {
@@ -397,7 +414,7 @@ function populateSites(body) {
       if (walls >= 3) candidates.push({ x, y, d });
     }
   }
-  const limit = Math.min(4, Math.max(2, Math.floor(body.radius / 55)));
+  const limit = Math.min(4, Math.max(2, Math.floor(body.gridRadius / 55)));
   for (let k = 0; k < limit && candidates.length; k++) {
     const pick = Math.floor(body.rand() * candidates.length);
     const cell = candidates.splice(pick, 1)[0];

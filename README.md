@@ -79,7 +79,7 @@ Only active or newly disturbed cells are simulated. Nearby bodies run at full ce
 
 Six bodies and three anomalies are generated deterministically:
 
-- **Luna (Selene)** — the central lunar gravity well; its regolith, caves, ice pockets, ores, magnetite and dense core remain modeled, but the stock ship begins in high lunar orbit. Even a full standard tank cannot provide enough delta-v for a safe lunar capture, so descent is a high-speed crash risk.
+- **Luna (Selene)** — the central lunar gravity well; its regolith, caves, ice pockets, ores, magnetite and dense core remain modeled, but the stock ship begins in high lunar orbit. Luna’s enlarged gravity well makes descent a braking challenge: begin with a full tank and manage your approach speed rather than relying on an artificial fuel lock.
 - **Kestrel Shard** — irregular asteroid with an ore geode and low-gravity caves.
 - **Vela** — volatile comet with ice, fuel pockets, sunward jets and a persistent parallax tail.
 - **Halcyon Ring** — trading station with hub, ring, spokes, solar wings, docking pad and electromagnetic rails.
@@ -91,7 +91,7 @@ The 294-body haul population is organized on ten circular prograde lunar lanes. 
 ## Gameplay systems
 
 - **Manual landing** on stations, asteroids and comets through one continuous physics world; attempting a lunar descent from the high-orbit haul corridor is a high-speed, fuel-limited risk.
-- **Mining and cave exploration** with grinders, lasers, explosives, structural collapse and flowing materials.
+- **Mining and cave exploration** with grinders, lasers, explosives, structural collapse and flowing materials. Select grinder (`1`) or laser (`2`), aim at exposed solid pixels and hold `LMB` or `F`. The grinder reduces material HP and turns depleted rock/ore into collectible grains; the laser heats and damages pixels, melting or vaporizing suitable materials. Use the magnetic scoop (`R`) to draw magnetic debris and nearby ore dust into cargo, then sell cargo at a lit dock (`T`). `RMB`/`Space` fires the cannon, not the selected mining tool.
 - **Combat** with Newtonian hostile scouts/lancers, plasma projectiles, terrain destruction and salvage.
 - **Trading** at lit docks: sell commodities, refuel, repair, expand cargo capacity and upgrade the magnetic amplifier.
 - **Exploration** with survey discovery, anomalies, a system map and mission objectives.

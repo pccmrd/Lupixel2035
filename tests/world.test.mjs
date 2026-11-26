@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateBody, materializeBody } from '../src/world/generation.js';
+import { ORBITAL_CONTEXT } from '../src/world/orbital.js';
 import { World } from '../src/world/world.js';
 import { Ship, SHIP_FUEL_FLOW } from '../src/game/ship.js';
 import { SHIP_SCALE } from '../src/game/shipConfig.js';
@@ -25,10 +26,10 @@ test('procedural bodies generate solids, gravity directions and an active materi
 const world = new World();
 
 test('gravity points into the dominant well and weakens with distance', () => {
-  const surface = world.gravityAt(0, -270);
+  const surface = world.gravityAt(0, -3900);
   assert.ok(surface.y > 0, 'north-pole gravity pulls toward the moon center');
   assert.ok(surface.magnitude > 10);
-  const deep = world.gravityAt(7000, 7000);
+  const deep = world.gravityAt(70000, 70000);
   assert.ok(deep.magnitude < surface.magnitude * 0.2);
   assert.equal(world.discoveryCount().max, 297);
   assert.equal(world.discoveryCount().total, 15);
@@ -48,14 +49,15 @@ test('material samples expose finite world coordinates for collision support', (
 });
 
 test('raycasts hit destructible dock pixels and explosions remove monolith cells', () => {
-  const hit = world.raycast(0, -285, 0, 1, 55);
+  const selene = world.bodyById.get('selene');
+  const start = selene.localToWorld(selene.dock.x, selene.dock.y - 6 / selene.cellScale);
+  const hit = world.raycast(start.x, start.y, 0, 1, 55);
   assert.ok(hit, 'a downward ray over Selene finds the outpost platform');
   assert.equal(hit.body.id, 'selene');
   assert.ok(isCollidable(hit.material));
 
-  const selene = world.bodyById.get('selene');
   const before = selene.solidCount;
-  world.explode(0, -235, 9, 130);
+  world.explode(hit.x, hit.y, 30, 130);
   assert.ok(selene.solidCount < before, 'the blast grinds or vaporizes material');
   assert.ok(world.takeEvents().some((event) => event.type === 'shockwave'));
 });
@@ -102,13 +104,15 @@ test('Luna dominates local bodies and a full tank cannot cancel its high-orbit c
   const field = new World();
   const luna = field.bodyById.get('selene');
   const berth = field.bodyById.get('halcyon');
-  assert.ok(luna.radius > Math.max(...field.bodies.filter((body) => body !== luna).map((body) => body.radius)) * 3);
+  assert.ok(luna.radius > Math.max(...field.bodies.filter((body) => body !== luna).map((body) => body.radius)) * 10);
   const orbitRadius = Math.hypot(berth.x - luna.x, berth.y - luna.y);
   const orbitalSpeed = Math.hypot(berth.vx - luna.vx, berth.vy - luna.vy);
-  const transferAxis = (orbitRadius + luna.radius) / 2;
-  const transferSpeedAtLuna = Math.sqrt(luna.mu * (2 / luna.radius - 1 / transferAxis));
-  const transferSpeedAtBerth = Math.sqrt(luna.mu * (2 / orbitRadius - 1 / transferAxis));
-  const captureDeltaV = Math.abs(orbitalSpeed - transferSpeedAtBerth) + transferSpeedAtLuna;
+  const gravityCap = 180;
+  const capRadius = Math.sqrt(luna.mu / gravityCap);
+  const fallPotential = luna.mu * (1 / capRadius - 1 / orbitRadius)
+    + gravityCap * (capRadius - luna.radius);
+  const fallSpeed = Math.sqrt(2 * fallPotential);
+  const captureDeltaV = orbitalSpeed + fallSpeed;
   const fullTankDeltaV = SHIP_SCALE.mainThrust * 100 / SHIP_FUEL_FLOW;
   assert.ok(fullTankDeltaV < captureDeltaV,
     'the stock ship cannot deorbit and brake to rest at Luna, even with full tanks');
@@ -125,7 +129,7 @@ test('all stations and haul ships stay in Luna-centered, bound orbital lanes', (
   const orbiting = field.bodies.filter((body) => body !== luna);
   for (const body of orbiting) {
     assert.ok(body.orbital, `${body.id} should have lunar orbital elements`);
-    assert.ok(body.orbital.a * (1 + body.orbital.e) < 60000,
+    assert.ok(body.orbital.a * (1 + body.orbital.e) < ORBITAL_CONTEXT.lunarHillRadiusKm,
       `${body.id} should remain inside Luna’s Hill sphere`);
     assert.equal(body.orbital.direction, 1, `${body.id} should travel prograde`);
   }
@@ -133,13 +137,18 @@ test('all stations and haul ships stay in Luna-centered, bound orbital lanes', (
   assert.ok(stations.every((body) => [2, 7].includes(body.orbital.lane)),
     'all stations use the two protected station lanes');
   for (const hauler of field.haulers) {
-    assert.ok(hauler.orbital.a * (1 + hauler.orbital.e) < 60000,
+    assert.ok(hauler.orbital.a * (1 + hauler.orbital.e) < ORBITAL_CONTEXT.lunarHillRadiusKm,
       `${hauler.id} should remain bound to Luna`);
     assert.equal(hauler.orbital.direction, 1);
   }
+  for (const anomaly of field.anomalies) {
+    assert.equal(anomaly.orbital.direction, 1);
+    assert.ok(anomaly.orbital.a < ORBITAL_CONTEXT.lunarHillRadiusKm);
+  }
   const allTracked = [
     ...orbiting,
-    ...field.haulers.map((hauler) => ({ ...hauler, radius: 0 }))
+    ...field.haulers.map((hauler) => ({ ...hauler, radius: 0 })),
+    ...field.anomalies.map((anomaly) => ({ ...anomaly, radius: 0 }))
   ];
   for (const time of [0, 10, 60, 300]) {
     const positions = allTracked.map((body) => ({

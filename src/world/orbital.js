@@ -7,9 +7,19 @@ export const ORBITAL_CONTEXT = Object.freeze({
   moonRadiusKm: 1737.4,
   moonMu: 4902.800066,
   worldUnitsPerKm: 230 / 1737.4,
-  timeScale: 1100
+  // Scales real lunar Kepler motion into game time and the gravity model's units.
+  timeScale: 908
 });
 
+export const LUNAR_LANES = Object.freeze({
+  minKm: 18000,
+  maxKm: 54000,
+  count: 10,
+  stationLanes: Object.freeze([2, 7])
+});
+
+const laneRadiusKm = (lane) => LUNAR_LANES.minKm
+  + (LUNAR_LANES.maxKm - LUNAR_LANES.minKm) * lane / (LUNAR_LANES.count - 1);
 const BUNDLE_NAMES = ['BASALT', 'COBALT', 'DUSK', 'FERROUS', 'GLACIER', 'IRIDIUM', 'KILN', 'LACUNA', 'MICA', 'NACRE', 'OBSIDIAN', 'QUARRY', 'RIME', 'SINTER', 'TUNGSTEN'];
 const BUNDLE_SUFFIX = ['VEIN', 'SHARD', 'CORE', 'DRIFT', 'REACH', 'CLUSTER', 'FRAGMENT', 'TRACE'];
 
@@ -28,6 +38,7 @@ export class OrbitalLayer {
     this.rng = new Rng(seed ^ 0x2035c15);
     this.time = 0;
     this.elements = new Map();
+    this.laneElements = Array.from({ length: LUNAR_LANES.count }, () => []);
   }
 
   createElements(options = {}) {
@@ -47,7 +58,8 @@ export class OrbitalLayer {
       periapsis,
       meanAnomaly,
       meanMotion,
-      direction: options.direction || (this.rng.chance(0.5) ? 1 : -1)
+      lane: options.lane ?? null,
+      direction: 1
     };
   }
 
@@ -98,6 +110,10 @@ export class OrbitalLayer {
       elements.meanAnomaly -= elements.meanMotion * this.time * elements.direction;
     }
     this.elements.set(body.id, elements);
+    if (Number.isInteger(elements.lane)) {
+      const occupants = this.laneElements[elements.lane];
+      if (occupants && !occupants.includes(elements)) occupants.push(elements);
+    }
     body.orbital = elements;
     const state = this.sample(elements, this.time);
     if (options.preservePose) {
@@ -129,6 +145,48 @@ export class OrbitalLayer {
     for (const body of bodies) this.sync(body);
   }
 
+  laneForType(type) {
+    const candidates = type === 'station'
+      ? LUNAR_LANES.stationLanes
+      : Array.from({ length: LUNAR_LANES.count }, (_, lane) => lane)
+        .filter((lane) => !LUNAR_LANES.stationLanes.includes(lane));
+    return candidates.reduce((best, lane) => (
+      this.laneElements[lane].length < this.laneElements[best].length ? lane : best
+    ), candidates[0]);
+  }
+
+  nextLanePhase(lane) {
+    const occupants = this.laneElements[lane];
+    if (!occupants.length) return this.rng.range(0, TAU);
+    const angles = occupants.map((elements) => (
+      (elements.meanAnomaly + elements.meanMotion * this.time * elements.direction + TAU) % TAU
+    )).sort((a, b) => a - b);
+    let bestStart = angles[angles.length - 1];
+    let largestGap = angles[0] + TAU - bestStart;
+    for (let i = 0; i < angles.length - 1; i++) {
+      const gap = angles[i + 1] - angles[i];
+      if (gap > largestGap) {
+        largestGap = gap;
+        bestStart = angles[i];
+      }
+    }
+    return (bestStart + largestGap / 2) % TAU;
+  }
+
+  createLaneElements(lane) {
+    const elements = this.createElements({
+      a: laneRadiusKm(lane),
+      e: 0,
+      inclination: 0,
+      node: 0,
+      periapsis: 0,
+      meanAnomaly: this.nextLanePhase(lane),
+      lane
+    });
+    this.laneElements[lane].push(elements);
+    return elements;
+  }
+
   createPopulation(count = 288, options = {}) {
     const configs = [];
     const startIndex = options.startIndex || 0;
@@ -138,6 +196,7 @@ export class OrbitalLayer {
       const catalogued = i < cataloguedCount;
       const typeRoll = this.rng.next();
       const type = typeRoll < 0.1 ? 'comet' : typeRoll < 0.19 ? 'cinder' : typeRoll < 0.235 ? 'station' : 'asteroid';
+      const lane = this.laneForType(type);
       const radius = type === 'station'
         ? this.rng.range(95, 120)
         : this.rng.chance(0.07)
@@ -145,14 +204,10 @@ export class OrbitalLayer {
           : this.rng.chance(0.34)
             ? this.rng.range(75, 95)
             : this.rng.range(65, 75);
-      // Keep the haul field in widely separated, near-circular lunar lanes.
-      // Its apolune stays inside the Moon's Hill sphere, while the wider radial
-      // spread leaves long quiet stretches between active asteroid clusters.
-      const elements = this.createElements({
-        a: this.rng.range(18000, 52000),
-        e: this.rng.range(0.008, 0.035)
-      });
-      const state = this.sample(elements, 0);
+      // Discrete circular tracks are tug-maintained: station tracks are reserved,
+      // and new arrivals are inserted into the widest phase gap on their lane.
+      const elements = this.createLaneElements(lane);
+      const state = this.sample(elements, this.time);
       const designation = String(serial + 1).padStart(4, '0');
       const name = catalogued
         ? `${this.rng.pick(BUNDLE_NAMES)} ${this.rng.pick(BUNDLE_SUFFIX)}`

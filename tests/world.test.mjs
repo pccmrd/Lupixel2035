@@ -120,17 +120,40 @@ test('all stations and haul ships stay in Luna-centered, bound orbital lanes', (
   const start = field.bodyById.get('halcyon');
   assert.equal(luna.x, 0);
   assert.equal(luna.y, 0);
-  assert.ok(Math.hypot(start.x - luna.x, start.y - luna.y) > 4500,
+  assert.ok(Math.hypot(start.x - luna.x, start.y - luna.y) > 3000,
     'the starting berth is far enough out for Luna to be a distant target');
-  for (const body of field.bodies) {
-    if (body === luna) continue;
+  const orbiting = field.bodies.filter((body) => body !== luna);
+  for (const body of orbiting) {
     assert.ok(body.orbital, `${body.id} should have lunar orbital elements`);
     assert.ok(body.orbital.a * (1 + body.orbital.e) < 60000,
       `${body.id} should remain inside Luna’s Hill sphere`);
+    assert.equal(body.orbital.direction, 1, `${body.id} should travel prograde`);
   }
+  const stations = orbiting.filter((body) => body.type === 'station');
+  assert.ok(stations.every((body) => [2, 7].includes(body.orbital.lane)),
+    'all stations use the two protected station lanes');
   for (const hauler of field.haulers) {
     assert.ok(hauler.orbital.a * (1 + hauler.orbital.e) < 60000,
       `${hauler.id} should remain bound to Luna`);
+    assert.equal(hauler.orbital.direction, 1);
+  }
+  const allTracked = [
+    ...orbiting,
+    ...field.haulers.map((hauler) => ({ ...hauler, radius: 0 }))
+  ];
+  for (const time of [0, 10, 60, 300]) {
+    const positions = allTracked.map((body) => ({
+      body,
+      ...field.orbital.sample(body.orbital, time)
+    }));
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        const a = positions[i];
+        const b = positions[j];
+        assert.ok(Math.hypot(a.x - b.x, a.y - b.y) > a.body.radius + b.body.radius,
+          `${a.body.id} and ${b.body.id} do not intersect at t=${time}`);
+      }
+    }
   }
 });
 

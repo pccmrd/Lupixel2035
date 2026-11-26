@@ -7,36 +7,36 @@ import { OrbitalLayer, ORBITAL_CONTEXT } from './orbital.js';
 const BODY_CONFIGS = [
   {
     id: 'selene', name: 'LUNA', type: 'moon', x: 0, y: 0,
-    w: 1000, h: 1000, radius: 460, g0: 60, seed: 0x5e1e, glow: '#9bd8ff',
+    w: 840, h: 840, radius: 380, g0: 60, seed: 0x5e1e, glow: '#9bd8ff',
     market: true, structural: true, hue: 0.57,
     description: 'Airless regolith, lava tubes, ice shadow traps and a surface exchange.'
   },
   {
-    id: 'kestrel', name: 'KESTREL SHARD', type: 'asteroid', x: -5200, y: -900,
+    id: 'kestrel', name: 'KESTREL SHARD', type: 'asteroid', x: -2382.870956601819, y: 0, orbitLane: 0,
     w: 260, h: 260, radius: 120, g0: 4, seed: 0x8a57, glow: '#ffb36b',
     structural: true, hue: 0.08,
     description: 'A fractured ore body with a crystalline geode and low gravity caves.'
   },
   {
-    id: 'vela', name: 'VELA', type: 'comet', x: 3700, y: -3900,
+    id: 'vela', name: 'VELA', type: 'comet', x: 0, y: -4500.978473581214, orbitLane: 4,
     w: 240, h: 240, radius: 110, g0: 1.7, seed: 0x7e1a, glow: '#8beaff',
     structural: true, hue: 0.52,
     description: 'Volatile ice, cryo vaults and an active sunward jet.'
   },
   {
-    id: 'halcyon', name: 'HALCYON RING', type: 'station', x: 4800, y: 1500,
+    id: 'halcyon', name: 'HALCYON RING', type: 'station', x: 3441.924715091516, y: 0, orbitLane: 2,
     w: 300, h: 300, radius: 120, g0: 2.5, seed: 0x1ac0, glow: '#8ef7ff',
     market: true, structural: false, variant: 'ring', hue: 0.5,
     description: 'A destructible trading ring with electromagnetic material rails.'
   },
   {
-    id: 'cinder', name: 'CINDER', type: 'cinder', x: 500, y: 5200,
+    id: 'cinder', name: 'CINDER', type: 'cinder', x: 7148.612869805456, y: 0, orbitLane: 9,
     w: 250, h: 250, radius: 115, g0: 4, seed: 0xc1de, glow: '#ff8055',
     structural: true, hue: 0.03,
     description: 'A hot carbonaceous asteroid with molten pockets and dense ores.'
   },
   {
-    id: 'vesper', name: 'VESPER FOUNDRY', type: 'station', x: -4000, y: 3300,
+    id: 'vesper', name: 'VESPER FOUNDRY', type: 'station', x: -6089.55911131576, y: 0, orbitLane: 7,
     w: 300, h: 300, radius: 115, g0: 2.2, seed: 0xfe5a, glow: '#ffb86b',
     market: true, structural: false, variant: 'foundry', hue: 0.1,
     description: 'An automated foundry that still contains flowing molten alloy.'
@@ -59,7 +59,7 @@ export class World {
       const body = createBody({ ...config, tailDirection, catalogued: true });
       if (body.type === 'moon' || body.id === 'halcyon') materializeBody(body);
       if (body.type !== 'moon') {
-        this.orbital.register(body, { preservePose: true, e: 0, inclination: 0, node: 0, periapsis: 0 });
+        this.orbital.register(body, { preservePose: true, e: 0, inclination: 0, node: 0, periapsis: 0, lane: config.orbitLane });
       } else {
         body.hiddenPosition = { x: 0, y: 0, z: 0 };
         body.hiddenVelocity = { x: 0, y: 0, z: 0 };
@@ -78,7 +78,7 @@ export class World {
     this.haulers = Array.from({ length: 7 }, (_, i) => ({
       id: `hauler-${i + 1}`,
       name: `AHA-${String(i + 1).padStart(2, '0')} AUTONOMOUS HAULER`,
-      orbital: this.orbital.createElements({ a: this.rng.range(45000, 54000), e: this.rng.range(0.01, 0.04) }),
+      orbital: this.orbital.createLaneElements(this.orbital.laneForType('hauler')),
       nextArrival: 34 + i * 19,
       state: null
     }));

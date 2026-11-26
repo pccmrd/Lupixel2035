@@ -30,6 +30,8 @@ export class Game {
     const home = this.world.bodyById.get('halcyon');
     this.ship.respawnAt(home);
     this.ship.hull = 100;
+    // Start topped off: this ship's full-tank delta-v is still inadequate for
+    // a safe capture from the distant lunar haul orbit.
     this.ship.fuel = 100;
     this.ship.energy = 100;
     const berth = this.docking.nearestSlot();
@@ -90,7 +92,8 @@ export class Game {
     };
 
     this.ui.log('HALCYON RING BERTH · CLAMPS SECURED · V TO RELEASE', 'good');
-    this.ui.log('2035 EARTH–MOON HAUL CORRIDOR · 294 RELOCATED BODIES', '');
+    this.ui.log('2035 LUNAR HAUL CORRIDOR · 294 RELOCATED BODIES', '');
+    this.ui.log('LUNA WELL: EVEN FULL TANKS LACK THE DELTA-V FOR SAFE CAPTURE', 'warn');
     this.ui.log('W/S THRUST · A/D TORQUE · Q/E RCS · O ORBIT ASSIST · G EVA · H FOR REFERENCE', '');
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);

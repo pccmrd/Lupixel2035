@@ -7,7 +7,7 @@ export const ORBITAL_CONTEXT = Object.freeze({
   moonRadiusKm: 1737.4,
   moonMu: 4902.800066,
   worldUnitsPerKm: 230 / 1737.4,
-  timeScale: 24
+  timeScale: 1100
 });
 
 const BUNDLE_NAMES = ['BASALT', 'COBALT', 'DUSK', 'FERROUS', 'GLACIER', 'IRIDIUM', 'KILN', 'LACUNA', 'MICA', 'NACRE', 'OBSIDIAN', 'QUARRY', 'RIME', 'SINTER', 'TUNGSTEN'];
@@ -138,12 +138,20 @@ export class OrbitalLayer {
       const catalogued = i < cataloguedCount;
       const typeRoll = this.rng.next();
       const type = typeRoll < 0.1 ? 'comet' : typeRoll < 0.19 ? 'cinder' : typeRoll < 0.235 ? 'station' : 'asteroid';
-      const radius = this.rng.chance(0.07)
-        ? this.rng.range(430, 720)
-        : this.rng.chance(0.34)
-          ? this.rng.range(190, 430)
-          : this.rng.range(72, 190);
-      const elements = this.createElements({ a: this.rng.range(14500, 47000) });
+      const radius = type === 'station'
+        ? this.rng.range(95, 120)
+        : this.rng.chance(0.07)
+          ? this.rng.range(95, 115)
+          : this.rng.chance(0.34)
+            ? this.rng.range(75, 95)
+            : this.rng.range(65, 75);
+      // Keep the haul field in widely separated, near-circular lunar lanes.
+      // Its apolune stays inside the Moon's Hill sphere, while the wider radial
+      // spread leaves long quiet stretches between active asteroid clusters.
+      const elements = this.createElements({
+        a: this.rng.range(18000, 52000),
+        e: this.rng.range(0.008, 0.035)
+      });
       const state = this.sample(elements, 0);
       const designation = String(serial + 1).padStart(4, '0');
       const name = catalogued

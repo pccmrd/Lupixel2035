@@ -382,8 +382,8 @@ const SITE_TYPES = [
 
 function populateSites(body) {
   const candidates = [];
-  for (let y = 22; y < body.h - 22; y += 17) {
-    for (let x = 22; x < body.w - 22; x += 17) {
+  for (let y = 22; y < body.h - 22; y += 10) {
+    for (let x = 22; x < body.w - 22; x += 10) {
       if (body.cellAt(x, y) !== MAT.VACUUM) continue;
       const d = Math.hypot(x - body.w / 2, y - body.h / 2);
       if (d > body.radius * 0.8 || d < 24) continue;
@@ -394,13 +394,16 @@ function populateSites(body) {
           if (isSolid(body.cellAt(x + ox, y + oy))) walls++;
         }
       }
-      if (walls >= 9) candidates.push({ x, y, d });
+      if (walls >= 3) candidates.push({ x, y, d });
     }
   }
   const limit = Math.min(4, Math.max(2, Math.floor(body.radius / 55)));
   for (let k = 0; k < limit && candidates.length; k++) {
     const pick = Math.floor(body.rand() * candidates.length);
     const cell = candidates.splice(pick, 1)[0];
+    for (let i = candidates.length - 1; i >= 0; i--) {
+      if (Math.hypot(candidates[i].x - cell.x, candidates[i].y - cell.y) < 20) candidates.splice(i, 1);
+    }
     const template = SITE_TYPES[(k + body.seed) % SITE_TYPES.length];
     for (let oy = -7; oy <= 7; oy++) {
       for (let ox = -7; ox <= 7; ox++) {

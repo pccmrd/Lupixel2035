@@ -33,7 +33,15 @@ test('haul population contains hundreds of bodies and exactly a five-percent cat
   assert.equal(configs.length, 288);
   assert.equal(configs.filter((body) => body.catalogued).length, 15);
   assert.ok(configs.filter((body) => !body.catalogued).every((body) => body.name === 'UNSURVEYED MASS'));
-  assert.ok(configs.some((body) => body.radius > 430));
+  assert.ok(configs.some((body) => body.radius > 100));
+  assert.ok(configs.every((body) => body.radius <= 120), 'minor bodies stay visibly smaller than Luna');
   assert.ok(configs.some((body) => body.type === 'comet'));
   assert.ok(configs.every((body) => Number.isFinite(body.x) && Number.isFinite(body.y)));
+  assert.ok(configs.every((body) => body.orbital.a >= 18000 && body.orbital.a <= 52000));
+  assert.ok(configs.every((body) => body.orbital.a * (1 + body.orbital.e) < 60000),
+    'haul bodies remain inside Luna’s Hill sphere');
+
+  const radii = configs.map((body) => Math.hypot(body.x, body.y));
+  assert.ok(Math.max(...radii) - Math.min(...radii) > 3000,
+    'the haul field is spread across a broad range of lunar orbital radii');
 });

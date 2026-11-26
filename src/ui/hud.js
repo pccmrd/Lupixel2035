@@ -170,7 +170,7 @@ export class UI {
     ctx.textAlign = 'left';
     ctx.fillText('← EARTH · 384,400 KM', 12, H - 12);
     ctx.textAlign = 'right';
-    ctx.fillText('SELENE ORIGIN · 2035', W - 12, H - 12);
+    ctx.fillText('LUNA ORBIT · 2035', W - 12, H - 12);
 
     for (const body of world.bodies) {
       const x = sx(body.x);

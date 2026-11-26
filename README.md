@@ -79,7 +79,7 @@ Only active or newly disturbed cells are simulated. Nearby bodies run at full ce
 
 Six bodies and three anomalies are generated deterministically:
 
-- **Selene** — airless moon with regolith, caves, ice pockets, ores, magnetite, dense core and a surface exchange pad.
+- **Luna (Selene)** — the central lunar gravity well; its regolith, caves, ice pockets, ores, magnetite and dense core remain modeled, but the stock ship begins in high lunar orbit. Even a full standard tank cannot provide enough delta-v for a safe lunar capture, so descent is a high-speed crash risk.
 - **Kestrel Shard** — irregular asteroid with an ore geode and low-gravity caves.
 - **Vela** — volatile comet with ice, fuel pockets, sunward jets and a persistent parallax tail.
 - **Halcyon Ring** — trading station with hub, ring, spokes, solar wings, docking pad and electromagnetic rails.
@@ -90,7 +90,7 @@ The renderer includes a procedural dithered nebula, parallax star layers, a dist
 
 ## Gameplay systems
 
-- **Manual landing** on moon, stations, asteroids and comets through one continuous physics world.
+- **Manual landing** on stations, asteroids and comets through one continuous physics world; attempting a lunar descent from the high-orbit haul corridor is a high-speed, fuel-limited risk.
 - **Mining and cave exploration** with grinders, lasers, explosives, structural collapse and flowing materials.
 - **Combat** with Newtonian hostile scouts/lancers, plasma projectiles, terrain destruction and salvage.
 - **Trading** at lit docks: sell commodities, refuel, repair, expand cargo capacity and upgrade the magnetic amplifier.

@@ -3,15 +3,22 @@ import { cargoForMaterial } from '../world/materials.js';
 import { holdSurface, releaseSurface, resolveTerrainCollision } from './physics.js';
 import { SHIP_SCALE, attachShip } from './shipConfig.js';
 
+export const SHIP_FUEL_FLOW = 60;
+
 export class Ship {
   constructor(world) {
     this.world = world;
     this.name = 'PEREGRINE';
     this.x = 0;
-    this.y = -420;
+    this.y = -640;
     this.prevX = this.x;
     this.prevY = this.y;
-    this.vx = 44;
+    const moon = world.bodyById?.get('selene');
+    const spawnRadius = Math.hypot(this.x - (moon?.x || 0), this.y - (moon?.y || 0));
+    const softening2 = ((moon?.radius || 0) * 0.22) ** 2;
+    this.vx = moon
+      ? Math.sqrt(moon.mu) * spawnRadius / Math.pow(spawnRadius ** 2 + softening2, 0.75)
+      : 44;
     this.vy = 0;
     this.angle = 0;
     this.omega = 0;
@@ -163,7 +170,7 @@ export class Ship {
     this.angle = 0;
     this.omega = 0;
     this.hull = 72;
-    this.fuel = 80;
+    this.fuel = 100;
     this.energy = 100;
     this.heat = 0;
     this.invulnerable = 2.4;
@@ -245,7 +252,9 @@ export class Ship {
     if ((forward || strafe) && this.fuel > 0) {
       ax = (f.x * forward + r.x * strafe) * mainPower;
       ay = (f.y * forward + r.y * strafe) * mainPower;
-      const consumption = (Math.abs(forward) * 1.35 + Math.abs(strafe) * 0.78) * boost * dt;
+      // The ship's compact tanks have poor impulse efficiency. Even a full
+      // tank carries less delta-v than a high-orbit lunar capture requires.
+      const consumption = (Math.abs(forward) + Math.abs(strafe)) * SHIP_FUEL_FLOW * boost * dt;
       this.fuel = Math.max(0, this.fuel - consumption);
       const thrustScale = this.fuel > 0 ? 1 : 0;
       ax *= thrustScale;

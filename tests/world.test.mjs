@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateBody, materializeBody } from '../src/world/generation.js';
 import { World } from '../src/world/world.js';
-import { Ship } from '../src/game/ship.js';
+import { Ship, SHIP_FUEL_FLOW } from '../src/game/ship.js';
+import { SHIP_SCALE } from '../src/game/shipConfig.js';
 import { DockingController } from '../src/game/docking.js';
 import { attachShip } from '../src/game/shipConfig.js';
 import { isCollidable, MAT } from '../src/world/materials.js';
@@ -95,6 +96,56 @@ test('orbital population stays lazy while nearby bodies retain material edits', 
   field.releaseDistantSurfaces({ x: 7000, y: 7000 });
   field.materializeNear(ship);
   assert.equal(unknown.mat[index], MAT.METAL);
+});
+
+test('Luna dominates local bodies and a full tank cannot cancel its high-orbit capture speed', () => {
+  const field = new World();
+  const luna = field.bodyById.get('selene');
+  const berth = field.bodyById.get('halcyon');
+  assert.ok(luna.radius > Math.max(...field.bodies.filter((body) => body !== luna).map((body) => body.radius)) * 3);
+  const orbitRadius = Math.hypot(berth.x - luna.x, berth.y - luna.y);
+  const orbitalSpeed = Math.hypot(berth.vx - luna.vx, berth.vy - luna.vy);
+  const transferAxis = (orbitRadius + luna.radius) / 2;
+  const transferSpeedAtLuna = Math.sqrt(luna.mu * (2 / luna.radius - 1 / transferAxis));
+  const transferSpeedAtBerth = Math.sqrt(luna.mu * (2 / orbitRadius - 1 / transferAxis));
+  const captureDeltaV = Math.abs(orbitalSpeed - transferSpeedAtBerth) + transferSpeedAtLuna;
+  const fullTankDeltaV = SHIP_SCALE.mainThrust * 100 / SHIP_FUEL_FLOW;
+  assert.ok(fullTankDeltaV < captureDeltaV,
+    'the stock ship cannot deorbit and brake to rest at Luna, even with full tanks');
+});
+
+test('all stations and haul ships stay in Luna-centered, bound orbital lanes', () => {
+  const field = new World();
+  const luna = field.bodyById.get('selene');
+  const start = field.bodyById.get('halcyon');
+  assert.equal(luna.x, 0);
+  assert.equal(luna.y, 0);
+  assert.ok(Math.hypot(start.x - luna.x, start.y - luna.y) > 4500,
+    'the starting berth is far enough out for Luna to be a distant target');
+  for (const body of field.bodies) {
+    if (body === luna) continue;
+    assert.ok(body.orbital, `${body.id} should have lunar orbital elements`);
+    assert.ok(body.orbital.a * (1 + body.orbital.e) < 60000,
+      `${body.id} should remain inside Luna’s Hill sphere`);
+  }
+  for (const hauler of field.haulers) {
+    assert.ok(hauler.orbital.a * (1 + hauler.orbital.e) < 60000,
+      `${hauler.id} should remain bound to Luna`);
+  }
+});
+
+test('distant generated pixel fields sleep while their lunar orbital positions remain active', () => {
+  const field = new World();
+  const body = field.bodyById.get('bundle-0010');
+  body.generated = true;
+  let steps = 0;
+  body.step = () => { steps++; };
+  const distantShip = { x: 0, y: 0, scoop: false, energy: 100 };
+  const before = { x: body.x, y: body.y };
+  field.update(0.1, distantShip, { collect: false, orbitalAdvanced: true });
+  assert.equal(steps, 0, 'remote granular cells should not consume the frame budget');
+  field.advance(1);
+  assert.notDeepEqual({ x: body.x, y: body.y }, before, "the body's lunar orbit continues while its surface sleeps");
 });
 
 test('hidden orbital motion translates bodies physically and haulers deliver new persistent bodies', () => {

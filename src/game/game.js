@@ -463,8 +463,8 @@ export class Game {
     this.lastTime = now;
 
     this.handleDiscreteInput();
-    const cameraActor = this.eva.active ? this.eva : this.ship;
-    this.renderer.updateCamera(dt, cameraActor, this.input);
+    // Aim input uses the camera state from the last rendered frame; update it
+    // again after stepping so tools and the render agree on the current frame.
     this.computeAim();
 
     const simulationStart = performance.now();
@@ -491,6 +491,12 @@ export class Game {
       this.laserWasActive = false;
     }
 
+    const cameraStart = performance.now();
+    const cameraActor = this.eva.active ? this.eva : this.ship;
+    this.renderer.updateCamera(dt, cameraActor, this.input);
+    this.computeAim();
+    const cameraUpdateMs = performance.now() - cameraStart;
+
     this.trade.update(dt);
     this.audio.setThrust(this.paused ? 0 : (this.eva.active ? this.eva.thrustLevel : this.ship.thrustLevel), this.eva.active ? false : this.ship.boosting);
     this.audio.setLaser(this.paused ? false : this.laserActive);
@@ -499,7 +505,7 @@ export class Game {
     this.renderer.render(this);
     const renderMs = performance.now() - renderStart;
     const frameMs = performance.now() - frameStart;
-    this.agent.recordTimings({ frameMs, simulationMs: renderStart - simulationStart, physicsMs: this.agentFramePhysicsMs, worldMs: this.agentFrameWorldMs, renderMs, fixedSteps: frameSteps, droppedTimeMs });
+    this.agent.recordTimings({ frameMs, simulationMs: renderStart - simulationStart, physicsMs: this.agentFramePhysicsMs, worldMs: this.agentFrameWorldMs, cameraUpdateMs, renderMs, fixedSteps: frameSteps, droppedTimeMs });
     this.agent.sampleFrame(frameMs);
     this.input.endFrame();
     requestAnimationFrame(this.loop);
